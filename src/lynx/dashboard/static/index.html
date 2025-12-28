@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lynx Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #1a1a2e;
+            color: #eaeaea;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #2d2d44;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .refresh-info {
+            color: #666;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        select, input {
+            background: #2d2d44;
+            border: 1px solid #3d3d54;
+            color: #eaeaea;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: #2d2d44;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 0.3rem;
+        }
+
+        .table-container {
+            background: #2d2d44;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #1a1a2e;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #888;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            color: #667eea;
+        }
+
+        th.sorted {
+            color: #667eea;
+        }
+
+        th.sorted::after {
+            content: ' ▼';
+            font-size: 0.7rem;
+        }
+
+        th.sorted.asc::after {
+            content: ' ▲';
+        }
+
+        td {
+            padding: 1rem;
+            border-top: 1px solid #1a1a2e;
+            font-size: 0.9rem;
+        }
+
+        tr:hover {
+            background: #363652;
+        }
+
+        tr.new-row {
+            animation: highlight 2s ease-out;
+        }
+
+        @keyframes highlight {
+            0% { background-color: rgba(102, 126, 234, 0.3); }
+            100% { background-color: transparent; }
+        }
+
+        .metric-positive {
+            color: #4ade80;
+        }
+
+        .metric-negative {
+            color: #f87171;
+        }
+
+        .strategy-tag {
+            background: #667eea33;
+            color: #667eea;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: #888;
+        }
+
+        code {
+            background: #1a1a2e;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .run-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .timestamp {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid #3d3d54;
+            color: #888;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .btn-danger:hover {
+            border-color: #f87171;
+            color: #f87171;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #2d2d44;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #eaeaea;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-card {
+            background: #1a1a2e;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+
+        .detail-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .params-section {
+            background: #1a1a2e;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .params-section h4 {
+            color: #888;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .params-list {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        /* Metrics Tabs */
+        .metrics-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #3d3d54;
+            padding-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: 1px solid #3d3d54;
+            color: #888;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: #fff;
+        }
+
+        .tab-summary {
+            display: flex;
+            gap: 0.3rem;
+            font-size: 0.75rem;
+        }
+
+        .tab-summary .count {
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .tab-summary .count-green {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .tab-summary .count-yellow {
+            background: rgba(250, 204, 21, 0.2);
+            color: #facc15;
+        }
+
+        .tab-summary .count-red {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .metric-card {
+            background: #1a1a2e;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid #3d3d54;
+            transition: transform 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .metric-card.metric-green {
+            border-left-color: #4ade80;
+        }
+
+        .metric-card.metric-yellow {
+            border-left-color: #facc15;
+        }
+
+        .metric-card.metric-red {
+            border-left-color: #f87171;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+            letter-spacing: 0.02em;
+        }
+
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #eaeaea;
+        }
+
+        .metric-value.value-negative {
+            color: #f87171;
+        }
+
+        .metric-value.value-special {
+            color: #888;
+            font-style: italic;
+        }
+
+        /* Health indicator dot */
+        .health-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+
+        .health-dot.health-green {
+            background-color: #4ade80;
+        }
+
+        .health-dot.health-yellow {
+            background-color: #facc15;
+        }
+
+        .health-dot.health-red {
+            background-color: #f87171;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Lynx Dashboard</h1>
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>Auto-refresh</span>
+            </div>
+            <span class="refresh-info">Updated <span id="last-update">just now</span></span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <select id="strategy-filter">
+            <option value="">All Strategies</option>
+        </select>
+        <select id="sort-by">
+            <option value="created_at">Sort by Date</option>
+            <option value="sharpe_ratio">Sort by Sharpe</option>
+            <option value="total_return">Sort by Return</option>
+            <option value="max_drawdown">Sort by Drawdown</option>
+        </select>
+        <select id="poll-interval">
+            <option value="3000">Refresh: 3s</option>
+            <option value="5000" selected>Refresh: 5s</option>
+            <option value="10000">Refresh: 10s</option>
+            <option value="0">Manual only</option>
+        </select>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value" id="total-runs">0</div>
+            <div class="stat-label">Total Runs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="total-strategies">0</div>
+            <div class="stat-label">Strategies</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="best-sharpe">-</div>
+            <div class="stat-label">Best Sharpe</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="best-return">-</div>
+            <div class="stat-label">Best Return</div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th data-sort="strategy_name">Strategy</th>
+                    <th data-sort="created_at" class="sorted">Date</th>
+                    <th data-sort="total_return">Return</th>
+                    <th data-sort="sharpe_ratio">Sharpe</th>
+                    <th data-sort="max_drawdown">Drawdown</th>
+                    <th data-sort="num_trades">Trades</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="runs-table">
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <h3>No runs yet</h3>
+                        <p>Log your first backtest with <code>lynx.log("strategy", trades=df)</code></p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal" id="detail-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Run Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let runs = [];
+        let knownRunIds = new Set();
+        let pollInterval = 5000;
+        let pollTimer = null;
+        let sortBy = 'created_at';
+        let sortAsc = false;
+        let strategyFilter = '';
+
+        // Elements
+        const runsTable = document.getElementById('runs-table');
+        const lastUpdate = document.getElementById('last-update');
+        const strategyFilterEl = document.getElementById('strategy-filter');
+        const sortByEl = document.getElementById('sort-by');
+        const pollIntervalEl = document.getElementById('poll-interval');
+
+        // Format helpers
+        function formatPercent(value) {
+            if (value == null) return '-';
+            const pct = (value * 100).toFixed(2);
+            return pct >= 0 ? `+${pct}%` : `${pct}%`;
+        }
+
+        function formatNumber(value, decimals = 2) {
+            if (value == null) return '-';
+            return value.toFixed(decimals);
+        }
+
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString();
+        }
+
+        function formatRelativeTime(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return `${diffDays}d ago`;
+        }
+
+        // Fetch runs from API
+        async function fetchRuns() {
+            try {
+                const params = new URLSearchParams({
+                    sort_by: sortBy,
+                    order: sortAsc ? 'asc' : 'desc'
+                });
+                if (strategyFilter) {
+                    params.append('strategy', strategyFilter);
+                }
+
+                const response = await fetch(`/api/runs?${params}`);
+                if (!response.ok) throw new Error('Failed to fetch runs');
+
+                const newRuns = await response.json();
+
+                // Detect new runs
+                const newRunIds = new Set(newRuns.map(r => r.id));
+                const addedRuns = newRuns.filter(r => !knownRunIds.has(r.id));
+
+                runs = newRuns;
+                knownRunIds = newRunIds;
+
+                renderRuns(addedRuns.map(r => r.id));
+                updateStats();
+                updateLastUpdate();
+
+            } catch (error) {
+                console.error('Error fetching runs:', error);
+            }
+        }
+
+        // Fetch strategies for filter dropdown
+        async function fetchStrategies() {
+            try {
+                const response = await fetch('/api/strategies');
+                if (!response.ok) throw new Error('Failed to fetch strategies');
+
+                const strategies = await response.json();
+
+                strategyFilterEl.innerHTML = '<option value="">All Strategies</option>';
+                strategies.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s;
+                    option.textContent = s;
+                    strategyFilterEl.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error('Error fetching strategies:', error);
+            }
+        }
+
+        // Render runs table
+        function renderRuns(newRunIds = []) {
+            if (runs.length === 0) {
+                runsTable.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <h3>No runs yet</h3>
+                            <p>Log your first backtest with <code>lynx.log("strategy", trades=df)</code></p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            runsTable.innerHTML = runs.map(run => {
+                const metrics = run.metrics || {};
+                const isNew = newRunIds.includes(run.id);
+                const returnClass = (metrics.total_return || 0) >= 0 ? 'metric-positive' : 'metric-negative';
+                const drawdownClass = 'metric-negative';
+
+                return `
+                    <tr class="${isNew ? 'new-row' : ''}" data-id="${run.id}">
+                        <td><span class="strategy-tag">${run.strategy_name}</span></td>
+                        <td>
+                            <div class="timestamp">${formatRelativeTime(run.created_at)}</div>
+                            <div class="run-id">${run.id}</div>
+                        </td>
+                        <td class="${returnClass}">${formatPercent(metrics.total_return)}</td>
+                        <td>${formatNumber(metrics.sharpe_ratio)}</td>
+                        <td class="${drawdownClass}">${formatPercent(metrics.max_drawdown)}</td>
+                        <td>${metrics.num_trades || 0}</td>
+                        <td class="actions">
+                            <button class="btn" onclick="showDetail('${run.id}')">View</button>
+                            <button class="btn btn-danger" onclick="deleteRun('${run.id}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('total-runs').textContent = runs.length;
+
+            const strategies = new Set(runs.map(r => r.strategy_name));
+            document.getElementById('total-strategies').textContent = strategies.size;
+
+            if (runs.length > 0) {
+                const sharpes = runs.map(r => r.metrics?.sharpe_ratio).filter(v => v != null);
+                const returns = runs.map(r => r.metrics?.total_return).filter(v => v != null);
+
+                if (sharpes.length > 0) {
+                    document.getElementById('best-sharpe').textContent = formatNumber(Math.max(...sharpes));
+                }
+                if (returns.length > 0) {
+                    document.getElementById('best-return').textContent = formatPercent(Math.max(...returns));
+                }
+            }
+        }
+
+        // Update last update time
+        function updateLastUpdate() {
+            lastUpdate.textContent = 'just now';
+        }
+
+        // Category display labels
+        const categoryLabels = {
+            profitability: 'Profitability',
+            risk: 'Risk',
+            ratio: 'Ratio',
+            winrate: 'Win Rate',
+            liquidity: 'Liquidity',
+            backtest: 'Backtest'
+        };
+
+        // Render metrics tabs
+        function renderMetricsTabs(metricsData, runId) {
+            const { metrics_by_category, category_order, default_tab } = metricsData;
+
+            // Get saved tab from sessionStorage or use default
+            const savedTab = sessionStorage.getItem(`metrics_tab_${runId}`) || default_tab;
+
+            // Render tabs
+            const tabsHtml = category_order.map(category => {
+                const catData = metrics_by_category[category];
+                if (!catData || catData.metrics.length === 0) return '';
+
+                const summary = catData.summary;
+                const isActive = category === savedTab;
+
+                return `
+                    <button class="tab-btn ${isActive ? 'active' : ''}" data-category="${category}">
+                        ${categoryLabels[category] || category}
+                        <span class="tab-summary">
+                            ${summary.green > 0 ? `<span class="count count-green">${summary.green}</span>` : ''}
+                            ${summary.yellow > 0 ? `<span class="count count-yellow">${summary.yellow}</span>` : ''}
+                            ${summary.red > 0 ? `<span class="count count-red">${summary.red}</span>` : ''}
+                        </span>
+                    </button>
+                `;
+            }).join('');
+
+            // Render panels
+            const panelsHtml = category_order.map(category => {
+                const catData = metrics_by_category[category];
+                if (!catData || catData.metrics.length === 0) return '';
+
+                const isActive = category === savedTab;
+
+                const metricsHtml = catData.metrics.map(metric => {
+                    const healthClass = metric.health ? `metric-${metric.health}` : '';
+                    const valueClass = metric.is_special ? 'value-special' : (metric.is_negative ? 'value-negative' : '');
+                    const healthDot = metric.health ? `<span class="health-dot health-${metric.health}"></span>` : '';
+
+                    return `
+                        <div class="metric-card ${healthClass}">
+                            <div class="metric-label">${metric.label}</div>
+                            <div class="metric-value ${valueClass}">
+                                ${metric.formatted}${healthDot}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="tab-panel ${isActive ? 'active' : ''}" data-category="${category}">
+                        <div class="metrics-grid">
+                            ${metricsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return { tabsHtml, panelsHtml };
+        }
+
+        // Setup tab click handlers
+        function setupTabHandlers(runId) {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const category = btn.dataset.category;
+
+                    // Update active states
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabPanels.forEach(p => p.classList.remove('active'));
+
+                    btn.classList.add('active');
+                    const panel = document.querySelector(`.tab-panel[data-category="${category}"]`);
+                    if (panel) panel.classList.add('active');
+
+                    // Save to sessionStorage
+                    sessionStorage.setItem(`metrics_tab_${runId}`, category);
+                });
+            });
+        }
+
+        // Show run detail modal
+        async function showDetail(runId) {
+            try {
+                // Fetch run details and metrics in parallel
+                const [runResponse, metricsResponse] = await Promise.all([
+                    fetch(`/api/runs/${runId}`),
+                    fetch(`/api/runs/${runId}/metrics`)
+                ]);
+
+                if (!runResponse.ok) throw new Error('Failed to fetch run details');
+
+                const run = await runResponse.json();
+                let metricsData = null;
+
+                if (metricsResponse.ok) {
+                    metricsData = await metricsResponse.json();
+                }
+
+                document.getElementById('modal-title').textContent = `${run.strategy_name}`;
+
+                // Build metrics section
+                let metricsSection = '';
+                if (metricsData) {
+                    const { tabsHtml, panelsHtml } = renderMetricsTabs(metricsData, runId);
+                    metricsSection = `
+                        <div class="params-section" style="margin-bottom: 1rem;">
+                            <h4 style="margin-bottom: 1rem;">Metrics</h4>
+                            <div class="metrics-tabs">
+                                ${tabsHtml}
+                            </div>
+                            ${panelsHtml}
+                        </div>
+                    `;
+                }
+
+                document.getElementById('modal-body').innerHTML = `
+                    <p class="run-id" style="margin-bottom: 1rem;">${run.id}</p>
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; color: #888; font-size: 0.85rem;">
+                        <span>Created: ${formatDate(run.created_at)}</span>
+                        <span>Updated: ${formatDate(run.updated_at)}</span>
+                    </div>
+
+                    ${metricsSection}
+
+                    <div class="params-section">
+                        <h4>Parameters</h4>
+                        <div class="params-list">
+                            ${Object.entries(run.params || {}).map(([k, v]) =>
+                                `<div><strong>${k}:</strong> ${JSON.stringify(v)}</div>`
+                            ).join('') || '<div style="color: #666;">No parameters</div>'}
+                        </div>
+                    </div>
+
+                    <div class="params-section">
+                        <h4>Artifacts</h4>
+                        <div class="params-list">
+                            ${(run.artifacts || []).map(a =>
+                                `<div>${a.type}: <strong>${a.name}</strong></div>`
+                            ).join('') || '<div style="color: #666;">No artifacts</div>'}
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('detail-modal').classList.add('active');
+
+                // Setup tab handlers after DOM is updated
+                if (metricsData) {
+                    setupTabHandlers(runId);
+                }
+
+            } catch (error) {
+                console.error('Error fetching run details:', error);
+                alert('Failed to load run details');
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('detail-modal').classList.remove('active');
+        }
+
+        // Delete run
+        async function deleteRun(runId) {
+            if (!confirm(`Delete run ${runId}?`)) return;
+
+            try {
+                const response = await fetch(`/api/runs/${runId}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to delete run');
+
+                knownRunIds.delete(runId);
+                await fetchRuns();
+                await fetchStrategies();
+
+            } catch (error) {
+                console.error('Error deleting run:', error);
+                alert('Failed to delete run');
+            }
+        }
+
+        // Start/stop polling
+        function startPolling() {
+            stopPolling();
+            if (pollInterval > 0) {
+                pollTimer = setInterval(fetchRuns, pollInterval);
+            }
+        }
+
+        function stopPolling() {
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+        }
+
+        // Event listeners
+        strategyFilterEl.addEventListener('change', (e) => {
+            strategyFilter = e.target.value;
+            fetchRuns();
+        });
+
+        sortByEl.addEventListener('change', (e) => {
+            sortBy = e.target.value;
+            fetchRuns();
+        });
+
+        pollIntervalEl.addEventListener('change', (e) => {
+            pollInterval = parseInt(e.target.value);
+            startPolling();
+        });
+
+        // Close modal on escape or click outside
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        document.getElementById('detail-modal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) closeModal();
+        });
+
+        // Initialize
+        async function init() {
+            await fetchStrategies();
+            await fetchRuns();
+            startPolling();
+        }
+
+        init();
+    </script>
+</body>
+</html>
