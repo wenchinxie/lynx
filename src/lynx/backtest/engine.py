@@ -2,6 +2,11 @@
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Literal
+
+import pandas as pd
+
+ConflictMode = Literal["exit_first", "entry_first", "ignore"]
 
 
 @dataclass
@@ -27,3 +32,48 @@ class Position:
         actual_exit = min(shares_to_exit, self.shares)
         self.shares -= actual_exit
         return actual_exit
+
+
+class BacktestEngine:
+    """Vectorized backtest engine."""
+
+    def __init__(
+        self,
+        entry_signal: pd.DataFrame,
+        exit_signal: pd.DataFrame,
+        price: pd.DataFrame,
+        initial_capital: float,
+        stop_loss: float | None = None,
+        take_profit: float | None = None,
+        conflict_mode: ConflictMode = "exit_first",
+        fees: dict[str, dict[str, float]] | None = None,
+        lot_size: dict[str, int] | None = None,
+    ):
+        """Initialize backtest engine.
+
+        Args:
+            entry_signal: Entry signal DataFrame (0-1 values)
+            exit_signal: Exit signal DataFrame (0-1 values)
+            price: Close price DataFrame
+            initial_capital: Starting capital
+            stop_loss: Stop loss percentage (e.g., 0.05 for 5%)
+            take_profit: Take profit percentage (e.g., 0.10 for 10%)
+            conflict_mode: How to handle entry/exit conflicts
+            fees: Custom fee configuration
+            lot_size: Custom lot size configuration
+        """
+        self.entry_signal = entry_signal
+        self.exit_signal = exit_signal
+        self.price = price
+        self.initial_capital = initial_capital
+        self.stop_loss = stop_loss
+        self.take_profit = take_profit
+        self.conflict_mode = conflict_mode
+        self.custom_fees = fees
+        self.custom_lot_size = lot_size
+
+        # State
+        self.cash = initial_capital
+        self.positions: dict[str, Position] = {}  # symbol -> Position
+        self.trades: list[dict] = []
+        self.equity_history: list[dict] = []
