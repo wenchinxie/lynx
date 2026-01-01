@@ -77,10 +77,32 @@ export interface PaginatedResponse<T> {
   total_pages: number
 }
 
+// Monthly returns
+export interface MonthlyReturnsResponse {
+  run_id: string
+  strategy_name: string
+  monthly_returns: Record<number, Record<number, number>>
+}
+
 // API query params
 export interface RunsQueryParams {
   strategy?: string
   sort_by?: string
   order?: 'asc' | 'desc'
   limit?: number
+}
+
+// Strategy summary
+export interface StrategySummary {
+  strategy_name: string
+  run_count: number
+  last_updated: string
+  last_updated_relative: string
+  metrics: {
+    best_return: number | null
+    avg_return: number | null
+    avg_sharpe: number | null
+    best_sharpe: number | null
+    worst_drawdown: number | null
+  }
 }

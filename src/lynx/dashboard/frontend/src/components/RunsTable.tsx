@@ -5,14 +5,16 @@ import {
   getSortedRowModel,
   useReactTable,
   type SortingState,
+  type ColumnDef,
 } from '@tanstack/react-table'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { RunSummary } from '../types/api'
 
 interface RunsTableProps {
   runs: RunSummary[]
   onViewRun: (runId: string) => void
   onDeleteRun: (runId: string) => void
+  hideStrategyColumn?: boolean
 }
 
 function formatPercent(value: number | undefined): string {
@@ -42,88 +44,98 @@ function formatRelativeTime(isoString: string): string {
 
 const columnHelper = createColumnHelper<RunSummary>()
 
-export function RunsTable({ runs, onViewRun, onDeleteRun }: RunsTableProps) {
+export function RunsTable({ runs, onViewRun, onDeleteRun, hideStrategyColumn = false }: RunsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
 
-  const columns = [
-    columnHelper.accessor('strategy_name', {
-      header: 'Strategy',
-      cell: (info) => (
-        <span className="bg-[var(--color-accent)]/20 text-[var(--color-accent)] px-2 py-1 rounded text-sm">
-          {info.getValue()}
-        </span>
-      ),
-    }),
-    columnHelper.accessor('created_at', {
-      header: 'Date',
-      cell: (info) => (
-        <div>
-          <div className="text-[var(--color-text-secondary)] text-sm">
-            {formatRelativeTime(info.getValue())}
-          </div>
-          <div className="text-[var(--color-text-muted)] text-xs font-mono">
-            {info.row.original.id}
-          </div>
-        </div>
-      ),
-    }),
-    columnHelper.accessor((row) => row.metrics?.total_return, {
-      id: 'total_return',
-      header: 'Return',
-      cell: (info) => {
-        const value = info.getValue()
-        const isPositive = (value ?? 0) >= 0
-        return (
-          <span className={isPositive ? 'text-[var(--color-positive)]' : 'text-[var(--color-negative)]'}>
-            {formatPercent(value)}
+  const columns = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cols: ColumnDef<RunSummary, any>[] = []
+
+    if (!hideStrategyColumn) {
+      cols.push(columnHelper.accessor('strategy_name', {
+        header: 'Strategy',
+        cell: (info) => (
+          <span className="bg-[var(--color-accent)]/20 text-[var(--color-accent)] px-2 py-1 rounded text-sm">
+            {info.getValue()}
           </span>
-        )
-      },
-    }),
-    columnHelper.accessor((row) => row.metrics?.sharpe_ratio, {
-      id: 'sharpe_ratio',
-      header: 'Sharpe',
-      cell: (info) => formatNumber(info.getValue()),
-    }),
-    columnHelper.accessor((row) => row.metrics?.max_drawdown, {
-      id: 'max_drawdown',
-      header: 'Drawdown',
-      cell: (info) => (
-        <span className="text-[var(--color-negative)]">
-          {formatPercent(info.getValue())}
-        </span>
-      ),
-    }),
-    columnHelper.accessor((row) => row.metrics?.num_trades, {
-      id: 'num_trades',
-      header: 'Trades',
-      cell: (info) => info.getValue() ?? 0,
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: 'Actions',
-      cell: (info) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => onViewRun(info.row.original.id)}
-            className="px-3 py-1 text-sm border border-[var(--color-border)] rounded text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
-          >
-            View
-          </button>
-          <button
-            onClick={() => {
-              if (confirm(`Delete run ${info.row.original.id}?`)) {
-                onDeleteRun(info.row.original.id)
-              }
-            }}
-            className="px-3 py-1 text-sm border border-[var(--color-border)] rounded text-[var(--color-text-secondary)] hover:border-[var(--color-negative)] hover:text-[var(--color-negative)] transition-colors"
-          >
-            Delete
-          </button>
-        </div>
-      ),
-    }),
-  ]
+        ),
+      }))
+    }
+
+    cols.push(
+      columnHelper.accessor('created_at', {
+        header: 'Date',
+        cell: (info) => (
+          <div>
+            <div className="text-[var(--color-text-secondary)] text-sm">
+              {formatRelativeTime(info.getValue())}
+            </div>
+            <div className="text-[var(--color-text-muted)] text-xs font-mono">
+              {info.row.original.id}
+            </div>
+          </div>
+        ),
+      }),
+      columnHelper.accessor((row) => row.metrics?.total_return, {
+        id: 'total_return',
+        header: 'Return',
+        cell: (info) => {
+          const value = info.getValue()
+          const isPositive = (value ?? 0) >= 0
+          return (
+            <span className={isPositive ? 'text-[var(--color-positive)]' : 'text-[var(--color-negative)]'}>
+              {formatPercent(value)}
+            </span>
+          )
+        },
+      }),
+      columnHelper.accessor((row) => row.metrics?.sharpe_ratio, {
+        id: 'sharpe_ratio',
+        header: 'Sharpe',
+        cell: (info) => formatNumber(info.getValue()),
+      }),
+      columnHelper.accessor((row) => row.metrics?.max_drawdown, {
+        id: 'max_drawdown',
+        header: 'Drawdown',
+        cell: (info) => (
+          <span className="text-[var(--color-negative)]">
+            {formatPercent(info.getValue())}
+          </span>
+        ),
+      }),
+      columnHelper.accessor((row) => row.metrics?.num_trades, {
+        id: 'num_trades',
+        header: 'Trades',
+        cell: (info) => info.getValue() ?? 0,
+      }),
+      columnHelper.display({
+        id: 'actions',
+        header: 'Actions',
+        cell: (info) => (
+          <div className="flex gap-2">
+            <button
+              onClick={() => onViewRun(info.row.original.id)}
+              className="px-3 py-1 text-sm border border-[var(--color-border)] rounded text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
+            >
+              View
+            </button>
+            <button
+              onClick={() => {
+                if (confirm(`Delete run ${info.row.original.id}?`)) {
+                  onDeleteRun(info.row.original.id)
+                }
+              }}
+              className="px-3 py-1 text-sm border border-[var(--color-border)] rounded text-[var(--color-text-secondary)] hover:border-[var(--color-negative)] hover:text-[var(--color-negative)] transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        ),
+      })
+    )
+
+    return cols
+  }, [hideStrategyColumn, onViewRun, onDeleteRun])
 
   const table = useReactTable({
     data: runs,

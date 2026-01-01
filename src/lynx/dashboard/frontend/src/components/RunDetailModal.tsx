@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
-import { useRunDetail, useRunMetrics } from '../hooks/useRunDetail'
+import { useRunDetail, useRunMetrics, useRunMonthlyReturns } from '../hooks/useRunDetail'
 import { MetricsTabs } from './MetricsTabs'
+import { SingleRunHeatmap } from './SingleRunHeatmap'
 
 interface RunDetailModalProps {
   runId: string | null
@@ -14,6 +15,7 @@ function formatDate(isoString: string): string {
 export function RunDetailModal({ runId, onClose }: RunDetailModalProps) {
   const { data: run, isLoading: runLoading } = useRunDetail(runId)
   const { data: metrics, isLoading: metricsLoading } = useRunMetrics(runId)
+  const { data: monthlyReturns, isLoading: monthlyLoading } = useRunMonthlyReturns(runId)
 
   // Close on Escape key
   useEffect(() => {
@@ -35,7 +37,7 @@ export function RunDetailModal({ runId, onClose }: RunDetailModalProps) {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="bg-[var(--color-bg-secondary)] rounded-xl p-6 w-[95%] max-w-[1200px] max-h-[85vh] overflow-y-auto">
+      <div className="bg-[var(--color-bg-secondary)] rounded-xl p-6 w-[95%] max-w-[1600px] max-h-[95vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-[var(--color-accent)]">
@@ -70,6 +72,11 @@ export function RunDetailModal({ runId, onClose }: RunDetailModalProps) {
                 <MetricsTabs data={metrics} />
               </div>
             )}
+
+            {/* Monthly Returns Heatmap */}
+            <div className="mb-6">
+              <SingleRunHeatmap data={monthlyReturns} isLoading={monthlyLoading} />
+            </div>
 
             {/* Parameters */}
             <div className="bg-[var(--color-bg-primary)] rounded-lg p-4 mb-4">

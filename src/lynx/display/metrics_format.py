@@ -5,22 +5,24 @@ from datetime import datetime
 from typing import Any
 
 # Metrics that should be displayed as percentages
+# Support both camelCase and snake_case
 PERCENTAGE_METRICS = {
-    "annualReturn",
+    "annualReturn", "annual_return", "annualized_return",
+    "total_return",
     "alpha",
     "beta",
-    "maxDrawdown",
-    "avgDrawdown",
+    "maxDrawdown", "max_drawdown",
+    "avgDrawdown", "avg_drawdown",
     "volatility",
-    "winRate",
-    "m12WinRate",
-    "feeRatio",
-    "taxRatio",
-    "disposalStockRatio",
-    "warningStockRatio",
-    "fullDeliveryStockRatio",
-    "valueAtRisk",
-    "cvalueAtRisk",
+    "winRate", "win_rate",
+    "m12WinRate", "m12_win_rate",
+    "feeRatio", "fee_ratio",
+    "taxRatio", "tax_ratio",
+    "disposalStockRatio", "disposal_stock_ratio",
+    "warningStockRatio", "warning_stock_ratio",
+    "fullDeliveryStockRatio", "full_delivery_stock_ratio",
+    "valueAtRisk", "value_at_risk",
+    "cvalueAtRisk", "cvalue_at_risk",
 }
 
 # Metrics that represent large numbers (capacity, etc.)
@@ -30,11 +32,11 @@ LARGE_NUMBER_METRICS = {
 
 # Metrics that should be formatted as ratios (2-4 decimal places)
 RATIO_METRICS = {
-    "sharpeRatio",
-    "sortinoRatio",
-    "calmarRatio",
-    "profitFactor",
-    "tailRatio",
+    "sharpeRatio", "sharpe_ratio",
+    "sortinoRatio", "sortino_ratio",
+    "calmarRatio", "calmar_ratio",
+    "profitFactor", "profit_factor",
+    "tailRatio", "tail_ratio",
     "expectancy",
     "mae",
     "mfe",
@@ -42,21 +44,27 @@ RATIO_METRICS = {
 
 # Metrics that should be formatted as integers
 INTEGER_METRICS = {
-    "avgNStock",
-    "maxNStock",
-    "avgDrawdownDays",
-    "buyHigh",
-    "sellLow",
+    "avgNStock", "avg_n_stock",
+    "maxNStock", "max_n_stock",
+    "avgDrawdownDays", "avg_drawdown_days",
+    "buyHigh", "buy_high",
+    "sellLow", "sell_low",
+    "num_trades",
+}
+
+# Metrics that should be formatted as floats with 1 decimal
+FLOAT_1_METRICS = {
+    "avg_trade_duration_days",
 }
 
 # Metrics that are Unix timestamps (should be converted to date strings)
 TIMESTAMP_METRICS = {
-    "startDate",
-    "endDate",
-    "updateDate",
-    "nextTradingDate",
-    "currentRebalanceDate",
-    "nextRebalanceDate",
+    "startDate", "start_date",
+    "endDate", "end_date",
+    "updateDate", "update_date",
+    "nextTradingDate", "next_trading_date",
+    "currentRebalanceDate", "current_rebalance_date",
+    "nextRebalanceDate", "next_rebalance_date",
 }
 
 
@@ -224,6 +232,8 @@ def format_metric_value(key: str, value: Any) -> dict:
         formatted = _format_ratio(numeric_value)
     elif key in INTEGER_METRICS:
         formatted = _format_integer(numeric_value)
+    elif key in FLOAT_1_METRICS:
+        formatted = f"{numeric_value:.1f}"
     else:
         # Default: use 2 decimal places for unknown metrics
         formatted = f"{numeric_value:.2f}"
@@ -245,48 +255,99 @@ def get_metric_label(key: str) -> str:
     Returns:
         Human-readable label (e.g., "Sharpe Ratio", "Annual Return")
     """
-    # Special cases
+    # Special cases - support both camelCase and snake_case
     label_overrides = {
+        # Annual Return (unify all variants to same label for deduplication)
         "annualReturn": "Annual Return",
+        "annual_return": "Annual Return",
+        "annualized_return": "Annual Return",
+        "total_return": "Total Return",
+        # Ratios
         "sharpeRatio": "Sharpe Ratio",
+        "sharpe_ratio": "Sharpe Ratio",
         "sortinoRatio": "Sortino Ratio",
+        "sortino_ratio": "Sortino Ratio",
         "calmarRatio": "Calmar Ratio",
-        "maxDrawdown": "Max Drawdown",
-        "avgDrawdown": "Avg Drawdown",
-        "avgDrawdownDays": "Avg Drawdown Days",
-        "valueAtRisk": "Value at Risk",
-        "cvalueAtRisk": "CVaR",
+        "calmar_ratio": "Calmar Ratio",
         "profitFactor": "Profit Factor",
+        "profit_factor": "Profit Factor",
         "tailRatio": "Tail Ratio",
+        "tail_ratio": "Tail Ratio",
+        # Drawdown
+        "maxDrawdown": "Max Drawdown",
+        "max_drawdown": "Max Drawdown",
+        "avgDrawdown": "Avg Drawdown",
+        "avg_drawdown": "Avg Drawdown",
+        "avgDrawdownDays": "Avg Drawdown Days",
+        "avg_drawdown_days": "Avg Drawdown Days",
+        # Risk
+        "valueAtRisk": "Value at Risk",
+        "value_at_risk": "Value at Risk",
+        "cvalueAtRisk": "CVaR",
+        "cvalue_at_risk": "CVaR",
+        # Win Rate
         "winRate": "Win Rate",
+        "win_rate": "Win Rate",
         "m12WinRate": "12M Win Rate",
+        "m12_win_rate": "12M Win Rate",
+        # Stock counts
         "avgNStock": "Avg # Stocks",
+        "avg_n_stock": "Avg # Stocks",
         "maxNStock": "Max # Stocks",
+        "max_n_stock": "Max # Stocks",
+        # Fee/Tax
         "feeRatio": "Fee Ratio",
+        "fee_ratio": "Fee Ratio",
         "taxRatio": "Tax Ratio",
+        "tax_ratio": "Tax Ratio",
+        # Dates
         "tradeAt": "Trade At",
+        "trade_at": "Trade At",
         "startDate": "Start Date",
+        "start_date": "Start Date",
         "endDate": "End Date",
+        "end_date": "End Date",
+        "updateDate": "Update Date",
+        "update_date": "Update Date",
+        "nextTradingDate": "Next Trading Date",
+        "next_trading_date": "Next Trading Date",
+        "currentRebalanceDate": "Current Rebalance",
+        "current_rebalance_date": "Current Rebalance",
+        "nextRebalanceDate": "Next Rebalance",
+        "next_rebalance_date": "Next Rebalance",
+        "livePerformanceStart": "Live Start",
+        "live_performance_start": "Live Start",
+        # Stock ratios
         "disposalStockRatio": "Disposal Stock %",
+        "disposal_stock_ratio": "Disposal Stock %",
         "warningStockRatio": "Warning Stock %",
+        "warning_stock_ratio": "Warning Stock %",
         "fullDeliveryStockRatio": "Full Delivery %",
+        "full_delivery_stock_ratio": "Full Delivery %",
+        # Trading
         "buyHigh": "Buy High",
+        "buy_high": "Buy High",
         "sellLow": "Sell Low",
+        "sell_low": "Sell Low",
+        "stopLoss": "Stop Loss",
+        "stop_loss": "Stop Loss",
+        "takeProfit": "Take Profit",
+        "take_profit": "Take Profit",
+        "trailStop": "Trail Stop",
+        "trail_stop": "Trail Stop",
+        # Other
         "mae": "MAE",
         "mfe": "MFE",
-        # New backtest fields
-        "updateDate": "Update Date",
-        "nextTradingDate": "Next Trading Date",
-        "currentRebalanceDate": "Current Rebalance",
-        "nextRebalanceDate": "Next Rebalance",
-        "livePerformanceStart": "Live Start",
-        "stopLoss": "Stop Loss",
-        "takeProfit": "Take Profit",
-        "trailStop": "Trail Stop",
+        "num_trades": "# Trades",
+        "avg_trade_duration_days": "Avg Trade Duration",
     }
 
     if key in label_overrides:
         return label_overrides[key]
+
+    # Convert snake_case to Title Case
+    if "_" in key:
+        return " ".join(word.title() for word in key.split("_"))
 
     # Convert camelCase to Title Case
     result = []

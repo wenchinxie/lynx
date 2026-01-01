@@ -5,6 +5,8 @@ import type {
   Trade,
   PaginatedResponse,
   RunsQueryParams,
+  MonthlyReturnsResponse,
+  StrategySummary,
 } from '../types/api'
 
 const API_BASE = '/api'
@@ -49,7 +51,15 @@ export async function deleteRun(runId: string): Promise<void> {
   await fetch(`${API_BASE}/runs/${runId}`, { method: 'DELETE' })
 }
 
+export async function fetchMonthlyReturns(runId: string): Promise<MonthlyReturnsResponse> {
+  return fetchJSON(`${API_BASE}/runs/${runId}/monthly-returns`)
+}
+
 // Strategies
 export async function fetchStrategies(): Promise<string[]> {
   return fetchJSON(`${API_BASE}/strategies`)
+}
+
+export async function fetchStrategySummaries(): Promise<StrategySummary[]> {
+  return fetchJSON(`${API_BASE}/strategies/summary`)
 }

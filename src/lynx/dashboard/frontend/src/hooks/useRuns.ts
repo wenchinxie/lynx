@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchRuns, fetchStrategies, deleteRun } from '../api/client'
-import type { RunsQueryParams } from '../types/api'
+import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query'
+import { fetchRuns, fetchStrategies, fetchStrategySummaries, deleteRun, fetchMonthlyReturns } from '../api/client'
+import type { RunsQueryParams, MonthlyReturnsResponse } from '../types/api'
 
 export function useRuns(params: RunsQueryParams = {}, refetchInterval: number = 5000) {
   return useQuery({
@@ -17,6 +17,14 @@ export function useStrategies() {
   })
 }
 
+export function useStrategySummaries(refetchInterval: number = 5000) {
+  return useQuery({
+    queryKey: ['strategies-summary'],
+    queryFn: fetchStrategySummaries,
+    refetchInterval: refetchInterval > 0 ? refetchInterval : false,
+  })
+}
+
 export function useDeleteRun() {
   const queryClient = useQueryClient()
 
@@ -26,5 +34,22 @@ export function useDeleteRun() {
       queryClient.invalidateQueries({ queryKey: ['runs'] })
       queryClient.invalidateQueries({ queryKey: ['strategies'] })
     },
+  })
+}
+
+export function useMonthlyReturns(runIds: string[]) {
+  return useQueries({
+    queries: runIds.map((runId) => ({
+      queryKey: ['monthly-returns', runId],
+      queryFn: () => fetchMonthlyReturns(runId),
+      staleTime: 60000,
+    })),
+    combine: (results) => ({
+      data: results
+        .filter((r) => r.data)
+        .map((r) => r.data as MonthlyReturnsResponse),
+      isLoading: results.some((r) => r.isLoading),
+      isError: results.some((r) => r.isError),
+    }),
   })
 }
