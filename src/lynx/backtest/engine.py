@@ -314,3 +314,104 @@ class BacktestEngine:
         # Remove position if fully exited
         if pos.shares <= 0:
             del self.positions[symbol]
+
+
+def backtest(
+    strategy_name: str,
+    entry_signal: pd.DataFrame,
+    exit_signal: pd.DataFrame,
+    price: pd.DataFrame,
+    initial_capital: float,
+    stop_loss: float | None = None,
+    take_profit: float | None = None,
+    conflict_mode: ConflictMode = "exit_first",
+    fees: dict[str, dict[str, float]] | None = None,
+    lot_size: dict[str, int] | None = None,
+) -> "Run":
+    """Run a backtest and return a saved Run object.
+
+    Args:
+        strategy_name: Name for the strategy
+        entry_signal: Entry signal DataFrame (0-1 values)
+        exit_signal: Exit signal DataFrame (0-1 values)
+        price: Close price DataFrame
+        initial_capital: Starting capital
+        stop_loss: Stop loss percentage (e.g., 0.05 for 5%)
+        take_profit: Take profit percentage (e.g., 0.10 for 10%)
+        conflict_mode: How to handle entry/exit conflicts
+        fees: Custom fee configuration
+        lot_size: Custom lot size configuration
+
+    Returns:
+        Run object with trades, metrics, and equity curve saved
+
+    Raises:
+        ValidationError: If inputs are invalid
+    """
+    from lynx.backtest.validators import validate_backtest_inputs
+    from lynx.run import Run
+    from lynx.storage import sqlite
+
+    # Validate inputs
+    validate_backtest_inputs(entry_signal, exit_signal, price)
+
+    # Initialize database
+    sqlite.init_db()
+
+    # Run backtest
+    engine = BacktestEngine(
+        entry_signal=entry_signal,
+        exit_signal=exit_signal,
+        price=price,
+        initial_capital=initial_capital,
+        stop_loss=stop_loss,
+        take_profit=take_profit,
+        conflict_mode=conflict_mode,
+        fees=fees,
+        lot_size=lot_size,
+    )
+    engine.run()
+
+    # Create trades DataFrame
+    trades_df = pd.DataFrame(engine.trades)
+
+    # Handle empty trades case
+    if trades_df.empty:
+        trades_df = pd.DataFrame({
+            "symbol": pd.Series([], dtype=str),
+            "entry_date": pd.Series([], dtype="datetime64[ns]"),
+            "exit_date": pd.Series([], dtype="datetime64[ns]"),
+            "entry_price": pd.Series([], dtype=float),
+            "exit_price": pd.Series([], dtype=float),
+            "shares": pd.Series([], dtype=int),
+            "return": pd.Series([], dtype=float),
+            "exit_reason": pd.Series([], dtype=str),
+        })
+    else:
+        # Convert dates to datetime
+        trades_df["entry_date"] = pd.to_datetime(trades_df["entry_date"])
+        trades_df["exit_date"] = pd.to_datetime(trades_df["exit_date"])
+
+    # Create equity DataFrame
+    equity_df = pd.DataFrame(engine.equity_history)
+    if not equity_df.empty:
+        equity_df = equity_df.set_index("date")
+
+    # Build params dict
+    params = {
+        "initial_capital": initial_capital,
+        "stop_loss": stop_loss,
+        "take_profit": take_profit,
+        "conflict_mode": conflict_mode,
+    }
+
+    # Create and save Run
+    run = Run(name=strategy_name, params=params)
+    run.trades(trades_df)
+    run.data("equity", equity_df)
+    run.signal("entry_signal", entry_signal)
+    run.signal("exit_signal", exit_signal)
+    run.data("price", price)
+    run.save()
+
+    return run

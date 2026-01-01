@@ -6,6 +6,7 @@ from typing import Any
 
 import pandas as pd
 
+from lynx.backtest import backtest
 from lynx.config import config as _config
 from lynx.exceptions import RunNotFoundError
 from lynx.run import Run, RunSummary
@@ -20,6 +21,8 @@ __all__ = [
     "get_watchlist", "set_watchlist", "add_to_watchlist", "remove_from_watchlist",
     # Portfolio functions (T062)
     "get_portfolio", "set_portfolio",
+    # Backtest engine
+    "backtest",
 ]
 __version__ = "0.1.0"
 
