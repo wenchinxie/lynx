@@ -6,62 +6,66 @@ from typing import Any
 from lynx.display.metrics_format import format_metric_value, get_metric_label
 
 # Metric categories for dashboard tabs (FR-014)
+# Support both camelCase and snake_case for flexibility
 METRIC_CATEGORIES: dict[str, list[str]] = {
     "backtest": [
-        "startDate",
-        "endDate",
+        "startDate", "start_date",
+        "endDate", "end_date",
         "version",
-        "feeRatio",
-        "taxRatio",
-        "tradeAt",
+        "feeRatio", "fee_ratio",
+        "taxRatio", "tax_ratio",
+        "tradeAt", "trade_at",
         "market",
         "freq",
         "expired",
-        "updateDate",
-        "nextTradingDate",
-        "currentRebalanceDate",
-        "nextRebalanceDate",
-        "livePerformanceStart",
-        "stopLoss",
-        "takeProfit",
-        "trailStop",
+        "updateDate", "update_date",
+        "nextTradingDate", "next_trading_date",
+        "currentRebalanceDate", "current_rebalance_date",
+        "nextRebalanceDate", "next_rebalance_date",
+        "livePerformanceStart", "live_performance_start",
+        "stopLoss", "stop_loss",
+        "takeProfit", "take_profit",
+        "trailStop", "trail_stop",
+        "num_trades",
+        "avg_trade_duration_days",
     ],
     "profitability": [
-        "annualReturn",
+        "annualReturn", "annual_return", "annualized_return",
+        "total_return",
         "alpha",
         "beta",
-        "avgNStock",
-        "maxNStock",
+        "avgNStock", "avg_n_stock",
+        "maxNStock", "max_n_stock",
     ],
     "risk": [
-        "maxDrawdown",
-        "avgDrawdown",
-        "avgDrawdownDays",
-        "valueAtRisk",
-        "cvalueAtRisk",
+        "maxDrawdown", "max_drawdown",
+        "avgDrawdown", "avg_drawdown",
+        "avgDrawdownDays", "avg_drawdown_days",
+        "valueAtRisk", "value_at_risk",
+        "cvalueAtRisk", "cvalue_at_risk",
     ],
     "ratio": [
-        "sharpeRatio",
-        "sortinoRatio",
-        "calmarRatio",
+        "sharpeRatio", "sharpe_ratio",
+        "sortinoRatio", "sortino_ratio",
+        "calmarRatio", "calmar_ratio",
         "volatility",
-        "profitFactor",
-        "tailRatio",
+        "profitFactor", "profit_factor",
+        "tailRatio", "tail_ratio",
     ],
     "winrate": [
-        "winRate",
-        "m12WinRate",
+        "winRate", "win_rate",
+        "m12WinRate", "m12_win_rate",
         "expectancy",
         "mae",
         "mfe",
     ],
     "liquidity": [
         "capacity",
-        "disposalStockRatio",
-        "warningStockRatio",
-        "fullDeliveryStockRatio",
-        "buyHigh",
-        "sellLow",
+        "disposalStockRatio", "disposal_stock_ratio",
+        "warningStockRatio", "warning_stock_ratio",
+        "fullDeliveryStockRatio", "full_delivery_stock_ratio",
+        "buyHigh", "buy_high",
+        "sellLow", "sell_low",
     ],
 }
 
@@ -89,21 +93,48 @@ class HealthThreshold:
 
 
 # Health thresholds for key metrics (FR-024 to FR-027)
+# Support both camelCase and snake_case
+_sharpe_threshold = HealthThreshold(green=1.0, yellow=0.5, higher_is_better=True)
+_sortino_threshold = HealthThreshold(green=1.5, yellow=0.75, higher_is_better=True)
+_calmar_threshold = HealthThreshold(green=1.0, yellow=0.5, higher_is_better=True)
+_max_dd_threshold = HealthThreshold(green=-0.15, yellow=-0.30, higher_is_better=True)
+_avg_dd_threshold = HealthThreshold(green=-0.05, yellow=-0.10, higher_is_better=True)
+_win_rate_threshold = HealthThreshold(green=0.50, yellow=0.40, higher_is_better=True)
+_annual_return_threshold = HealthThreshold(green=0.15, yellow=0.05, higher_is_better=True)
+_profit_factor_threshold = HealthThreshold(green=1.5, yellow=1.0, higher_is_better=True)
+_volatility_threshold = HealthThreshold(green=0.15, yellow=0.25, higher_is_better=False)
+
 HEALTH_THRESHOLDS: dict[str, HealthThreshold] = {
-    "sharpeRatio": HealthThreshold(green=1.0, yellow=0.5, higher_is_better=True),
-    "sortinoRatio": HealthThreshold(green=1.5, yellow=0.75, higher_is_better=True),
-    "calmarRatio": HealthThreshold(green=1.0, yellow=0.5, higher_is_better=True),
-    "maxDrawdown": HealthThreshold(
-        green=-0.15, yellow=-0.30, higher_is_better=True
-    ),  # -15% is better than -30%
-    "avgDrawdown": HealthThreshold(green=-0.05, yellow=-0.10, higher_is_better=True),
-    "winRate": HealthThreshold(green=0.50, yellow=0.40, higher_is_better=True),
-    "m12WinRate": HealthThreshold(green=0.50, yellow=0.40, higher_is_better=True),
-    "annualReturn": HealthThreshold(green=0.15, yellow=0.05, higher_is_better=True),
-    "profitFactor": HealthThreshold(green=1.5, yellow=1.0, higher_is_better=True),
-    "volatility": HealthThreshold(
-        green=0.15, yellow=0.25, higher_is_better=False
-    ),  # Lower volatility is better
+    # Sharpe
+    "sharpeRatio": _sharpe_threshold,
+    "sharpe_ratio": _sharpe_threshold,
+    # Sortino
+    "sortinoRatio": _sortino_threshold,
+    "sortino_ratio": _sortino_threshold,
+    # Calmar
+    "calmarRatio": _calmar_threshold,
+    "calmar_ratio": _calmar_threshold,
+    # Max Drawdown (-15% is better than -30%)
+    "maxDrawdown": _max_dd_threshold,
+    "max_drawdown": _max_dd_threshold,
+    # Avg Drawdown
+    "avgDrawdown": _avg_dd_threshold,
+    "avg_drawdown": _avg_dd_threshold,
+    # Win Rate
+    "winRate": _win_rate_threshold,
+    "win_rate": _win_rate_threshold,
+    "m12WinRate": _win_rate_threshold,
+    "m12_win_rate": _win_rate_threshold,
+    # Annual Return
+    "annualReturn": _annual_return_threshold,
+    "annual_return": _annual_return_threshold,
+    "annualized_return": _annual_return_threshold,
+    "total_return": _annual_return_threshold,
+    # Profit Factor
+    "profitFactor": _profit_factor_threshold,
+    "profit_factor": _profit_factor_threshold,
+    # Volatility (lower is better)
+    "volatility": _volatility_threshold,
 }
 
 
@@ -167,14 +198,31 @@ def categorize_metrics(metrics: dict[str, Any]) -> dict[str, dict]:
     for category in CATEGORY_ORDER:
         category_metrics = []
         summary = {"green": 0, "yellow": 0, "red": 0}
+        # Track labels we've already added to avoid duplicates
+        category_seen: dict[str, dict] = {}
 
         for metric_key in METRIC_CATEGORIES.get(category, []):
-            if metric_key not in metrics:
-                continue
+            # Get the label to deduplicate camelCase/snake_case variants
+            label = get_metric_label(metric_key)
 
-            value = metrics[metric_key]
+            # Check if metric exists
+            value = metrics.get(metric_key)
 
-            # Format the metric value
+            # If we've already seen this label, only update if we found actual data
+            if label in category_seen:
+                # If current value is None but we already have data, skip
+                if value is None:
+                    continue
+                # If we have data now but the previous entry was None, update it
+                prev_entry = category_seen[label]
+                if prev_entry["raw"] is None and value is not None:
+                    # Remove the old None entry and add the new one with data
+                    category_metrics.remove(prev_entry)
+                else:
+                    # Already have data or both are None, skip
+                    continue
+
+            # Format the metric value (handles None)
             formatted = format_metric_value(metric_key, value)
 
             # Calculate health status
@@ -186,17 +234,17 @@ def categorize_metrics(metrics: dict[str, Any]) -> dict[str, dict]:
             if health:
                 summary[health] += 1
 
-            category_metrics.append(
-                {
-                    "key": metric_key,
-                    "label": get_metric_label(metric_key),
-                    "raw": formatted["raw"],
-                    "formatted": formatted["formatted"],
-                    "health": health,
-                    "is_negative": formatted["is_negative"],
-                    "is_special": formatted["is_special"],
-                }
-            )
+            entry = {
+                "key": metric_key,
+                "label": label,
+                "raw": formatted["raw"],
+                "formatted": formatted["formatted"],
+                "health": health,
+                "is_negative": formatted["is_negative"],
+                "is_special": formatted["is_special"],
+            }
+            category_seen[label] = entry
+            category_metrics.append(entry)
 
         # Sort metrics: red first, then yellow, then green, then None
         health_order = {"red": 0, "yellow": 1, "green": 2, None: 3}

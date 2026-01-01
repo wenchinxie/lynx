@@ -209,3 +209,9 @@ __marimo__/
 # specify
 .specify/
 specs/
+
+# Playwright MCP screenshots
+.playwright-mcp/
+
+# Dashboard build output (rebuild with: cd src/lynx/dashboard/frontend && bun run build)
+src/lynx/dashboard/static/assets/

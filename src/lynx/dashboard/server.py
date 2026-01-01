@@ -311,6 +311,55 @@ def list_strategies() -> list[str]:
     return strategies
 
 
+@app.get("/api/strategies/summary")
+def list_strategies_summary() -> list[dict[str, Any]]:
+    """Get strategy summaries with aggregated metrics.
+
+    Returns:
+        List of strategy summaries with run count and key metrics
+    """
+    from lynx.display.time_format import format_relative_time
+
+    sqlite.init_db()
+
+    runs = lynx.runs()
+    if not runs:
+        return []
+
+    # Group runs by strategy
+    strategies: dict[str, list] = {}
+    for run in runs:
+        if run.strategy_name not in strategies:
+            strategies[run.strategy_name] = []
+        strategies[run.strategy_name].append(run)
+
+    summaries = []
+    for strategy_name, strategy_runs in sorted(strategies.items()):
+        # Get metrics from all runs
+        returns = [r.metrics.get("total_return") for r in strategy_runs if r.metrics.get("total_return") is not None]
+        sharpes = [r.metrics.get("sharpe_ratio") for r in strategy_runs if r.metrics.get("sharpe_ratio") is not None]
+        drawdowns = [r.metrics.get("max_drawdown") for r in strategy_runs if r.metrics.get("max_drawdown") is not None]
+
+        # Find latest run
+        latest_run = max(strategy_runs, key=lambda r: r.updated_at)
+
+        summaries.append({
+            "strategy_name": strategy_name,
+            "run_count": len(strategy_runs),
+            "last_updated": latest_run.updated_at.isoformat(),
+            "last_updated_relative": format_relative_time(latest_run.updated_at),
+            "metrics": {
+                "best_return": max(returns) if returns else None,
+                "avg_return": sum(returns) / len(returns) if returns else None,
+                "avg_sharpe": sum(sharpes) / len(sharpes) if sharpes else None,
+                "best_sharpe": max(sharpes) if sharpes else None,
+                "worst_drawdown": min(drawdowns) if drawdowns else None,
+            },
+        })
+
+    return summaries
+
+
 @app.get("/api/compare")
 def compare_runs(
     run_ids: str = Query(..., description="Comma-separated run IDs"),
@@ -432,6 +481,59 @@ def set_portfolio(holdings: list[dict]) -> dict[str, Any]:
 
 
 # Coverage analysis endpoint (T070)
+
+
+@app.get("/api/runs/{run_id}/monthly-returns")
+def get_run_monthly_returns(run_id: str) -> dict[str, Any]:
+    """Get monthly returns calculated from trades for a run.
+
+    Args:
+        run_id: The run's unique identifier
+
+    Returns:
+        Monthly returns organized by year and month
+
+    Raises:
+        HTTPException: If run not found
+    """
+    sqlite.init_db()
+
+    try:
+        run = lynx.load(run_id)
+    except RunNotFoundError as err:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found") from err
+
+    trades = run.get_trades()
+    if trades.empty or "exit_date" not in trades.columns or "return" not in trades.columns:
+        return {
+            "run_id": run.id,
+            "strategy_name": run.strategy_name,
+            "monthly_returns": {},
+        }
+
+    # Convert exit_date to datetime if needed
+    trades = trades.copy()
+    trades["exit_date"] = pd.to_datetime(trades["exit_date"])
+    trades["year"] = trades["exit_date"].dt.year
+    trades["month"] = trades["exit_date"].dt.month
+
+    # Group by year and month, sum returns
+    monthly = trades.groupby(["year", "month"])["return"].sum()
+
+    # Convert to nested dict {year: {month: return}}
+    monthly_returns: dict[int, dict[int, float]] = {}
+    for (year, month), ret in monthly.items():
+        year = int(year)
+        month = int(month)
+        if year not in monthly_returns:
+            monthly_returns[year] = {}
+        monthly_returns[year][month] = float(ret)
+
+    return {
+        "run_id": run.id,
+        "strategy_name": run.strategy_name,
+        "monthly_returns": monthly_returns,
+    }
 
 
 @app.get("/api/runs/{run_id}/coverage")
