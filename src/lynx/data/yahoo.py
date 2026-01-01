@@ -34,13 +34,21 @@ def validate_symbols(symbols: list[str]) -> ValidationResult:
             ticker = yf.Ticker(symbol)
             info = ticker.info
 
-            # Check if we got valid info back
-            if info and info.get("regularMarketPrice") is not None:
+            # Check if we got valid info back by checking multiple fields
+            # Note: regularMarketPrice is real-time and may be None outside trading hours,
+            # so we check multiple fields to verify symbol existence
+            if info and any([
+                info.get("regularMarketPrice") is not None,
+                info.get("previousClose") is not None,
+                info.get("symbol") == symbol,  # At least confirm symbol exists
+            ]):
                 result.valid_symbols.append(symbol)
             else:
                 result.invalid_symbols.append(symbol)
                 result.errors[symbol] = "Symbol not found or no market data"
         except Exception as e:
+            # Broad exception handling is acceptable here since yfinance can throw
+            # various exception types (network errors, API errors, etc.)
             result.invalid_symbols.append(symbol)
             result.errors[symbol] = str(e)
 
@@ -64,8 +72,14 @@ def fetch_adjusted_prices(
 
     Raises:
         DataFetchError: If Yahoo Finance API fails
-        InvalidSymbolError: If any symbol is invalid
+        ValueError: If input validation fails
     """
+    # Input validation
+    if not symbols:
+        raise ValueError("symbols list cannot be empty")
+    if start_date > end_date:
+        raise ValueError(f"start_date {start_date} must be before end_date {end_date}")
+
     try:
         # Download data from Yahoo Finance
         data = yf.download(

@@ -25,6 +25,30 @@ class TestValidateSymbols:
         assert result.invalid_symbols == []
 
     @patch("lynx.data.yahoo.yf.Ticker")
+    def test_valid_symbol_with_previous_close(self, mock_ticker):
+        """Symbol valid if previousClose exists (even without regularMarketPrice)."""
+        mock_instance = MagicMock()
+        # Symbol without regularMarketPrice but with previousClose (e.g., after hours)
+        mock_instance.info = {"previousClose": 150.0, "symbol": "AAPL"}
+        mock_ticker.return_value = mock_instance
+
+        result = validate_symbols(["AAPL"])
+        assert result.valid_symbols == ["AAPL"]
+        assert result.invalid_symbols == []
+
+    @patch("lynx.data.yahoo.yf.Ticker")
+    def test_valid_symbol_with_symbol_field_only(self, mock_ticker):
+        """Symbol valid if symbol field matches (minimum validation)."""
+        mock_instance = MagicMock()
+        # Symbol with only symbol field matching
+        mock_instance.info = {"symbol": "AAPL"}
+        mock_ticker.return_value = mock_instance
+
+        result = validate_symbols(["AAPL"])
+        assert result.valid_symbols == ["AAPL"]
+        assert result.invalid_symbols == []
+
+    @patch("lynx.data.yahoo.yf.Ticker")
     def test_invalid_symbol_detected(self, mock_ticker):
         """Invalid symbols should be detected."""
         mock_instance = MagicMock()
@@ -55,6 +79,24 @@ class TestValidateSymbols:
 
 class TestFetchAdjustedPrices:
     """Tests for price fetching."""
+
+    def test_empty_symbols_raises_error(self):
+        """Empty symbols list should raise ValueError."""
+        with pytest.raises(ValueError, match="symbols list cannot be empty"):
+            fetch_adjusted_prices(
+                symbols=[],
+                start_date=date(2024, 1, 1),
+                end_date=date(2024, 1, 3),
+            )
+
+    def test_start_after_end_raises_error(self):
+        """Start date after end date should raise ValueError."""
+        with pytest.raises(ValueError, match="start_date.*must be before end_date"):
+            fetch_adjusted_prices(
+                symbols=["AAPL"],
+                start_date=date(2024, 1, 10),
+                end_date=date(2024, 1, 1),
+            )
 
     @patch("lynx.data.yahoo.yf.download")
     def test_fetch_single_symbol(self, mock_download):
