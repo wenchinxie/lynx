@@ -132,3 +132,135 @@ class TestBacktestEngine:
             take_profit=0.10,
         )
         assert engine.take_profit == 0.10
+
+    def test_engine_run_simple_trade(self, sample_data):
+        from lynx.backtest.engine import BacktestEngine
+
+        entry, exit_, price = sample_data
+        engine = BacktestEngine(
+            entry_signal=entry,
+            exit_signal=exit_,
+            price=price,
+            initial_capital=1_000_000,
+        )
+        engine.run()
+
+        # Should have executed trades
+        assert len(engine.trades) > 0
+
+        # Should have equity history for each day
+        assert len(engine.equity_history) == 5
+
+    def test_engine_generates_correct_trades(self):
+        from lynx.backtest.engine import BacktestEngine
+
+        dates = pd.date_range("2024-01-01", periods=3, freq="D")
+        entry_signal = pd.DataFrame({
+            "TEST.US": [1.0, 0.0, 0.0],
+        }, index=dates)
+        exit_signal = pd.DataFrame({
+            "TEST.US": [0.0, 0.0, 1.0],
+        }, index=dates)
+        price = pd.DataFrame({
+            "TEST.US": [100.0, 110.0, 120.0],
+        }, index=dates)
+
+        # Use zero-fee config for precise test
+        engine = BacktestEngine(
+            entry_signal=entry_signal,
+            exit_signal=exit_signal,
+            price=price,
+            initial_capital=10_000,
+            fees={".US": {"commission_rate": 0.0, "slippage": 0.0}},
+        )
+        engine.run()
+
+        assert len(engine.trades) == 1
+        trade = engine.trades[0]
+        assert trade["symbol"] == "TEST.US"
+        assert trade["entry_price"] == 100.0
+        assert trade["exit_price"] == 120.0
+        assert trade["exit_reason"] == "signal"
+
+    def test_engine_respects_lot_size(self):
+        from lynx.backtest.engine import BacktestEngine
+
+        dates = pd.date_range("2024-01-01", periods=2, freq="D")
+        entry_signal = pd.DataFrame({
+            "2330.TW": [1.0, 0.0],
+        }, index=dates)
+        exit_signal = pd.DataFrame({
+            "2330.TW": [0.0, 1.0],
+        }, index=dates)
+        price = pd.DataFrame({
+            "2330.TW": [580.0, 600.0],
+        }, index=dates)
+
+        engine = BacktestEngine(
+            entry_signal=entry_signal,
+            exit_signal=exit_signal,
+            price=price,
+            initial_capital=1_000_000,
+        )
+        engine.run()
+
+        # TW stocks must be bought in lots of 1000
+        trade = engine.trades[0]
+        assert trade["shares"] % 1000 == 0
+
+    def test_engine_stop_loss_triggers(self):
+        from lynx.backtest.engine import BacktestEngine
+
+        dates = pd.date_range("2024-01-01", periods=4, freq="D")
+        entry_signal = pd.DataFrame({
+            "TEST.US": [1.0, 0.0, 0.0, 0.0],
+        }, index=dates)
+        exit_signal = pd.DataFrame({
+            "TEST.US": [0.0, 0.0, 0.0, 0.0],  # No exit signal
+        }, index=dates)
+        price = pd.DataFrame({
+            "TEST.US": [100.0, 95.0, 90.0, 85.0],  # Price drops 15%
+        }, index=dates)
+
+        # Use zero-fee config for precise test
+        engine = BacktestEngine(
+            entry_signal=entry_signal,
+            exit_signal=exit_signal,
+            price=price,
+            initial_capital=10_000,
+            stop_loss=0.10,  # 10% stop loss
+            fees={".US": {"commission_rate": 0.0, "slippage": 0.0}},
+        )
+        engine.run()
+
+        # Should have exited due to stop loss
+        assert len(engine.trades) == 1
+        assert engine.trades[0]["exit_reason"] == "stop_loss"
+
+    def test_engine_take_profit_triggers(self):
+        from lynx.backtest.engine import BacktestEngine
+
+        dates = pd.date_range("2024-01-01", periods=4, freq="D")
+        entry_signal = pd.DataFrame({
+            "TEST.US": [1.0, 0.0, 0.0, 0.0],
+        }, index=dates)
+        exit_signal = pd.DataFrame({
+            "TEST.US": [0.0, 0.0, 0.0, 0.0],
+        }, index=dates)
+        price = pd.DataFrame({
+            "TEST.US": [100.0, 105.0, 112.0, 115.0],  # Price rises 15%
+        }, index=dates)
+
+        # Use zero-fee config for precise test
+        engine = BacktestEngine(
+            entry_signal=entry_signal,
+            exit_signal=exit_signal,
+            price=price,
+            initial_capital=10_000,
+            take_profit=0.10,  # 10% take profit
+            fees={".US": {"commission_rate": 0.0, "slippage": 0.0}},
+        )
+        engine.run()
+
+        assert len(engine.trades) == 1
+        assert engine.trades[0]["exit_reason"] == "take_profit"
