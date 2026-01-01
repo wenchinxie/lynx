@@ -6,10 +6,12 @@ from lynx.backtest.defaults import (
     get_fees_for_symbol,
     get_lot_size_for_symbol,
 )
+from lynx.backtest.validators import validate_backtest_inputs
 
 __all__ = [
     "DEFAULT_FEES",
     "DEFAULT_LOT_SIZE",
     "get_fees_for_symbol",
     "get_lot_size_for_symbol",
+    "validate_backtest_inputs",
 ]
