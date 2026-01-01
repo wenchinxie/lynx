@@ -369,13 +369,14 @@ def backtest(
     strategy_name: str,
     entry_signal: pd.DataFrame,
     exit_signal: pd.DataFrame,
-    price: pd.DataFrame,
-    initial_capital: float,
+    price: pd.DataFrame | None = None,
+    initial_capital: float = 1_000_000,
     stop_loss: float | None = None,
     take_profit: float | None = None,
     conflict_mode: ConflictMode = "exit_first",
     fees: dict[str, dict[str, float]] | None = None,
     lot_size: dict[str, int] | None = None,
+    auto_fetch_prices: bool = True,
 ) -> "Run":
     """Run a backtest and return a saved Run object.
 
@@ -383,13 +384,14 @@ def backtest(
         strategy_name: Name for the strategy
         entry_signal: Entry signal DataFrame (0-1 values)
         exit_signal: Exit signal DataFrame (0-1 values)
-        price: Close price DataFrame
-        initial_capital: Starting capital
+        price: Close price DataFrame (optional if auto_fetch_prices=True)
+        initial_capital: Starting capital (default: 1,000,000)
         stop_loss: Stop loss percentage (e.g., 0.05 for 5%)
         take_profit: Take profit percentage (e.g., 0.10 for 10%)
         conflict_mode: How to handle entry/exit conflicts
         fees: Custom fee configuration
         lot_size: Custom lot size configuration
+        auto_fetch_prices: Auto-fetch prices from Yahoo Finance if price is None (default: True)
 
     Returns:
         Run object with trades, metrics, and equity curve saved
@@ -401,8 +403,9 @@ def backtest(
     from lynx.run import Run
     from lynx.storage import sqlite
 
-    # Validate inputs
-    validate_backtest_inputs(entry_signal, exit_signal, price)
+    # Validate inputs - only validate price if provided
+    if price is not None:
+        validate_backtest_inputs(entry_signal, exit_signal, price)
 
     # Initialize database
     sqlite.init_db()
@@ -418,6 +421,7 @@ def backtest(
         conflict_mode=conflict_mode,
         fees=fees,
         lot_size=lot_size,
+        auto_fetch_prices=auto_fetch_prices,
     )
     engine.run()
 
@@ -460,7 +464,8 @@ def backtest(
     run.data("equity", equity_df)
     run.signal("entry_signal", entry_signal)
     run.signal("exit_signal", exit_signal)
-    run.data("price", price)
+    # Save price from engine (may have been auto-fetched)
+    run.data("price", engine.price)
     run.save()
 
     return run
