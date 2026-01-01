@@ -1,6 +1,5 @@
 """Tests for backtest default configurations."""
 
-import pytest
 from lynx.backtest.defaults import (
     DEFAULT_FEES,
     DEFAULT_LOT_SIZE,

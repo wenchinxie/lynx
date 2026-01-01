@@ -16,6 +16,7 @@ class TestYahooFinanceIntegration:
     def test_fetch_real_prices(self):
         """Test fetching real prices from Yahoo Finance."""
         from datetime import date
+
         from lynx.data.yahoo import fetch_adjusted_prices
 
         prices = fetch_adjusted_prices(
@@ -40,6 +41,7 @@ class TestYahooFinanceIntegration:
     def test_fetch_taiwan_stock(self):
         """Test fetching Taiwan stock (2330.TW = TSMC)."""
         from datetime import date
+
         from lynx.data.yahoo import fetch_adjusted_prices
 
         prices = fetch_adjusted_prices(
