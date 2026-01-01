@@ -1,8 +1,9 @@
 """Tests for backtest engine."""
 
+from datetime import date
+
 import pandas as pd
 import pytest
-from datetime import date
 
 
 class TestPosition:

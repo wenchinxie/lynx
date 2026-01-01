@@ -2,6 +2,7 @@
 
 import pandas as pd
 import pytest
+
 from lynx.backtest.validators import validate_backtest_inputs
 from lynx.exceptions import ValidationError
 

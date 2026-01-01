@@ -1,6 +1,7 @@
 """Tests for trading cost calculations."""
 
 import pytest
+
 from lynx.backtest.costs import calculate_buy_cost, calculate_sell_revenue
 
 
