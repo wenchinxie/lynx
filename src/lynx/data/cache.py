@@ -35,7 +35,7 @@ def load_from_cache(symbol: str) -> pd.DataFrame | None:
     try:
         return pd.read_parquet(path)
     except Exception as e:
-        warnings.warn(f"Failed to read cache for {symbol}: {e}")
+        warnings.warn(f"Failed to read cache for {symbol}: {e}", stacklevel=2)
         return None
 
 

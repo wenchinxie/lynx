@@ -1,11 +1,9 @@
 """Tests for price data caching."""
 
 from datetime import date
-from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
-import pytest
 
 from lynx.data.cache import (
     fetch_prices_with_cache,
@@ -89,7 +87,7 @@ class TestFetchWithCache:
             )
             save_to_cache("AAPL", cached_df)
 
-            result = fetch_prices_with_cache(
+            fetch_prices_with_cache(
                 symbols=["AAPL"],
                 start_date=date(2024, 1, 1),
                 end_date=date(2024, 1, 2),
@@ -116,7 +114,7 @@ class TestFetchWithCache:
             )
             mock_fetch.return_value = mock_df
 
-            result = fetch_prices_with_cache(
+            fetch_prices_with_cache(
                 symbols=["AAPL"],
                 start_date=date(2024, 1, 1),
                 end_date=date(2024, 1, 3),
