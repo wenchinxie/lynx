@@ -22,9 +22,17 @@ def get_cache_path(symbol: str) -> Path:
 
 
 def save_to_cache(symbol: str, df: pd.DataFrame) -> None:
-    """Save price data to cache."""
+    """Save price data to cache with atomic write."""
     path = get_cache_path(symbol)
-    df.to_parquet(path)
+    temp_path = path.with_suffix('.parquet.tmp')
+
+    # Standardize column name to symbol
+    save_df = df.copy()
+    if len(save_df.columns) == 1 and save_df.columns[0] != symbol:
+        save_df = save_df.rename(columns={save_df.columns[0]: symbol})
+
+    save_df.to_parquet(temp_path)
+    temp_path.replace(path)  # Atomic on POSIX
 
 
 def load_from_cache(symbol: str) -> pd.DataFrame | None:
@@ -47,11 +55,13 @@ def fetch_prices_with_cache(
     """Fetch prices with local caching support."""
     result_dfs = []
     symbols_to_fetch = []
+    cached_data = {}  # Store already-loaded cache
 
     for symbol in symbols:
         cached = load_from_cache(symbol)
 
         if cached is not None and not cached.empty:
+            cached_data[symbol] = cached  # Store for later use
             cached_start = cached.index.min().date()
             cached_end = cached.index.max().date()
 
@@ -59,8 +69,6 @@ def fetch_prices_with_cache(
                 # Cache covers the range
                 mask = (cached.index.date >= start_date) & (cached.index.date <= end_date)
                 filtered = cached.loc[mask]
-                if filtered.columns[0] != symbol:
-                    filtered = filtered.rename(columns={filtered.columns[0]: symbol})
                 result_dfs.append(filtered)
             else:
                 symbols_to_fetch.append(symbol)
@@ -78,10 +86,9 @@ def fetch_prices_with_cache(
             if symbol in fetched.columns:
                 symbol_df = fetched[[symbol]]
 
-                existing = load_from_cache(symbol)
-                if existing is not None and not existing.empty:
-                    if existing.columns[0] != symbol:
-                        existing = existing.rename(columns={existing.columns[0]: symbol})
+                # Use cached_data instead of re-reading from disk
+                if symbol in cached_data:
+                    existing = cached_data[symbol]
                     combined = pd.concat([existing, symbol_df])
                     combined = combined[~combined.index.duplicated(keep="last")]
                     combined = combined.sort_index()

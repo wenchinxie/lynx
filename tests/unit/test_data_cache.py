@@ -45,7 +45,12 @@ class TestCacheOperations:
             save_to_cache("AAPL", df)
             loaded = load_from_cache("AAPL")
 
-            pd.testing.assert_frame_equal(df, loaded, check_freq=False)
+            # Column should be renamed to symbol name
+            expected = pd.DataFrame(
+                {"AAPL": [100.0, 101.0]},
+                index=pd.date_range("2024-01-01", periods=2),
+            )
+            pd.testing.assert_frame_equal(expected, loaded, check_freq=False)
 
     def test_load_nonexistent_cache_returns_none(self, tmp_path):
         """Loading non-existent cache should return None."""
@@ -80,9 +85,9 @@ class TestFetchWithCache:
     def test_uses_cache_when_available(self, mock_fetch, tmp_path):
         """Should use cache when data is available."""
         with patch("lynx.data.cache.Path.home", return_value=tmp_path):
-            # Pre-populate cache
+            # Pre-populate cache (column will be standardized to AAPL)
             cached_df = pd.DataFrame(
-                {"close": [100.0, 101.0]},
+                {"AAPL": [100.0, 101.0]},
                 index=pd.date_range("2024-01-01", periods=2),
             )
             save_to_cache("AAPL", cached_df)
@@ -100,9 +105,9 @@ class TestFetchWithCache:
     def test_fetches_missing_dates(self, mock_fetch, tmp_path):
         """Should fetch only missing date ranges."""
         with patch("lynx.data.cache.Path.home", return_value=tmp_path):
-            # Pre-populate cache with partial data
+            # Pre-populate cache with partial data (will be standardized to AAPL)
             cached_df = pd.DataFrame(
-                {"close": [100.0]},
+                {"AAPL": [100.0]},
                 index=pd.date_range("2024-01-01", periods=1),
             )
             save_to_cache("AAPL", cached_df)
