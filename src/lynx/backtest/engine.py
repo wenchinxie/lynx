@@ -44,26 +44,28 @@ class BacktestEngine:
         self,
         entry_signal: pd.DataFrame,
         exit_signal: pd.DataFrame,
-        price: pd.DataFrame,
-        initial_capital: float,
+        price: pd.DataFrame | None = None,
+        initial_capital: float = 1_000_000,
         stop_loss: float | None = None,
         take_profit: float | None = None,
         conflict_mode: ConflictMode = "exit_first",
         fees: dict[str, dict[str, float]] | None = None,
         lot_size: dict[str, int] | None = None,
+        auto_fetch_prices: bool = True,
     ):
         """Initialize backtest engine.
 
         Args:
             entry_signal: Entry signal DataFrame (0-1 values)
             exit_signal: Exit signal DataFrame (0-1 values)
-            price: Close price DataFrame
+            price: Close price DataFrame (optional if auto_fetch_prices=True)
             initial_capital: Starting capital
             stop_loss: Stop loss percentage (e.g., 0.05 for 5%)
             take_profit: Take profit percentage (e.g., 0.10 for 10%)
             conflict_mode: How to handle entry/exit conflicts
             fees: Custom fee configuration
             lot_size: Custom lot size configuration
+            auto_fetch_prices: Auto-fetch prices from Yahoo Finance if price is None
         """
         self.entry_signal = entry_signal
         self.exit_signal = exit_signal
@@ -74,6 +76,7 @@ class BacktestEngine:
         self.conflict_mode = conflict_mode
         self.custom_fees = fees
         self.custom_lot_size = lot_size
+        self.auto_fetch_prices = auto_fetch_prices
 
         # State
         self.cash = initial_capital
@@ -85,6 +88,49 @@ class BacktestEngine:
         """Execute the backtest simulation."""
         from lynx.backtest.costs import calculate_buy_cost
         from lynx.backtest.defaults import get_fees_for_symbol, get_lot_size_for_symbol
+
+        # Auto-fetch prices if needed
+        if self.price is None and self.auto_fetch_prices:
+            from lynx.data.cache import fetch_prices_with_cache
+            from lynx.data.exceptions import InvalidSymbolError
+            from lynx.data.yahoo import validate_symbols
+
+            # Get symbols from entry signal columns
+            symbols = list(self.entry_signal.columns)
+
+            # Validate symbols
+            validation = validate_symbols(symbols)
+            if validation.invalid_symbols:
+                raise InvalidSymbolError(
+                    f"Cannot fetch from Yahoo Finance: {validation.invalid_symbols}"
+                )
+
+            # Get date range from signals
+            start_date = min(
+                self.entry_signal.index.min(),
+                self.exit_signal.index.min(),
+            )
+            end_date = max(
+                self.entry_signal.index.max(),
+                self.exit_signal.index.max(),
+            )
+
+            # Convert to date if Timestamp
+            if hasattr(start_date, 'date'):
+                start_date = start_date.date()
+            if hasattr(end_date, 'date'):
+                end_date = end_date.date()
+
+            # Fetch prices
+            self.price = fetch_prices_with_cache(
+                symbols=symbols,
+                start_date=start_date,
+                end_date=end_date,
+            )
+
+        # Validate price is available
+        if self.price is None:
+            raise ValueError("price is required when auto_fetch_prices=False")
 
         symbols = list(self.price.columns)
         dates = self.price.index.tolist()
