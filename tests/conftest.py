@@ -74,3 +74,35 @@ def empty_trades_df():
         "exit_price": pd.Series([], dtype=float),
         "return": pd.Series([], dtype=float),
     })
+
+
+# Backtest fixtures
+
+@pytest.fixture
+def sample_entry_signal():
+    """Create a sample entry signal DataFrame for backtesting."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+    return pd.DataFrame({
+        "2330.TW": [0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "2317.TW": [0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0],
+    }, index=dates)
+
+
+@pytest.fixture
+def sample_exit_signal():
+    """Create a sample exit signal DataFrame for backtesting."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+    return pd.DataFrame({
+        "2330.TW": [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+        "2317.TW": [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+    }, index=dates)
+
+
+@pytest.fixture
+def sample_backtest_price():
+    """Create a sample price DataFrame for backtesting."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+    return pd.DataFrame({
+        "2330.TW": [580.0, 585.0, 590.0, 600.0, 595.0, 600.0, 605.0, 610.0, 615.0, 620.0],
+        "2317.TW": [112.0, 113.0, 114.0, 116.0, 115.0, 116.0, 117.0, 118.0, 119.0, 120.0],
+    }, index=dates)
