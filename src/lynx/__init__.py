@@ -8,6 +8,7 @@ import pandas as pd
 
 from lynx.backtest import backtest
 from lynx.config import config as _config
+from lynx.data.exceptions import DataFetchError, InvalidSymbolError
 from lynx.exceptions import RunNotFoundError
 from lynx.run import Run, RunSummary
 from lynx.storage import parquet, sqlite
@@ -23,6 +24,9 @@ __all__ = [
     "get_portfolio", "set_portfolio",
     # Backtest engine
     "backtest",
+    # Data module exceptions
+    "DataFetchError",
+    "InvalidSymbolError",
 ]
 __version__ = "0.1.0"
 
