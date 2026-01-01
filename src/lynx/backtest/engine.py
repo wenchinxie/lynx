@@ -2,9 +2,12 @@
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from lynx.run import Run
 
 ConflictMode = Literal["exit_first", "entry_first", "ignore"]
 
@@ -80,7 +83,7 @@ class BacktestEngine:
 
     def run(self) -> None:
         """Execute the backtest simulation."""
-        from lynx.backtest.costs import calculate_buy_cost, calculate_sell_revenue
+        from lynx.backtest.costs import calculate_buy_cost
         from lynx.backtest.defaults import get_fees_for_symbol, get_lot_size_for_symbol
 
         symbols = list(self.price.columns)
@@ -93,7 +96,7 @@ class BacktestEngine:
         # Track positions marked for exit (for next day execution)
         pending_exits: dict[str, str] = {}  # symbol -> reason
 
-        for i, current_date in enumerate(dates):
+        for _i, current_date in enumerate(dates):
             current_prices = self.price.loc[current_date]
 
             # Step 1: Execute pending exits (from previous day's stop/take profit)
